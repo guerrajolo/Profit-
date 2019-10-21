@@ -23,7 +23,6 @@ any(is.na(existingprod))  # confirm if any "NA" values in ds
 sum(is.na(existingprod["BestSellersRank"]))   
 sum(is.na(existingprod))   
 
-plot(x = producty)
 
 existingprod$BestSellersRank[is.na(existingprod$BestSellersRank)] <- mean(existingprod$BestSellersRank, na.rm = TRUE)
 #how do I insert mean for each product type instead of the generalised one ? 
@@ -39,7 +38,7 @@ newprod$Volume <- as.numeric(newprod$Volume)
 str(newprod)
 
 # correlation matrix to spot relationships
-correlations <- cor(existingprod[,c(2,3,4,5,6,7,8,9,10,12,13,14,15,16)])
+correlations <- cor(existingprod[,c(2,3,4,5,6,7,8,9,10,12,13,14,15,16,17)])
 corrplot(correlations, method = "pie") 
 print(correlations)
 
@@ -49,14 +48,14 @@ existingprod$x3StarReviews <- NULL
 existingprod$NegativeServiceReview <- NULL
 
 # correlation matrix to spot relationships for new products
-correlationsnew <- cor(newprod[,c(3,4,5,6,7,8,9,10,11,12,13,14,15,16)])
+correlationsnew <- cor(newprod[,c(3,4,5,6,7,8,9,10,11,12,13,14,15,16,17)])
 corrplot(correlationsnew, method = "pie") 
 print(correlationsnew)
 
 # dummify the data
-newDataFrame <- dummy(newprod, p = "newprod$producttype", object = NULL, int = FALSE, verbose = FALSE)
-readyData <- data.frame(predict(newDataFrame, newdata = existingprod))
+dummy_matrix <- dummyVars("~ .", data = existingprod)
 
+existingprod_dum <- data.frame(predict(dummy_matrix, newdata = existingprod))
 
 ggplot(newprod, aes(x = ProductNum, fill = Volume)) + geom_histogram(colour = "black") + stat_bin(existingprod$ProductNum, 30)
 
@@ -68,3 +67,9 @@ inTraining <- createDataPartition(existingprod, p = .75, list = FALSE)
 training <- existingprod[inTraining,]
 testing <- existingprod[-inTraining,]
 
+subset(existingprod, ProductType =='PC')
+
+# create a subset for product type to calculate better the mean 
+newdata <- existingprod[existingprod$productType == 2,]
+droplevels(existingprod$ProductType)
+str(existingprod)
