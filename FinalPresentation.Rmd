@@ -1,0 +1,441 @@
+---
+title: "Blackwell ProductType Prediction"
+output: github_document
+author: "Gherardo Lattanzi, Edison Guevara"
+date: "October 23, 2019"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
+```
+
+# Set working directory 
+```{r}
+rm(list = ls()) 
+getwd()         
+
+setwd("/Users/gherardolattanzi/MultipleReg")
+existingprod <- read.csv("Data/existingproductattributes2017.csv")
+newprod <- read.csv("Data/newproductattributes2017.csv")
+```
+
+# Import Libraries
+```{r}
+
+pacman::p_load(caret, tidyverse, readr, corrplot, caretEnsemble, 
+               data.table, e1071)
+library(ggplot2)
+library(caret)
+library(corrplot)
+library(dummy)
+
+```
+
+
+#Check for Missing Values
+```{r}
+any(is.na(newprod)) 
+any(is.na(existingprod)) 
+
+#Lets substitute the missing NA with 
+sum(is.na(existingprod["BestSellersRank"]))   
+sum(is.na(existingprod))   
+
+existingprod$BestSellersRank[is.na(existingprod$BestSellersRank)] <- mean(existingprod$BestSellersRank, na.rm = TRUE)
+
+```
+
+```{r}
+existingprod$ProfitMargin <- NULL
+
+```
+
+
+# Setting Volume as Numeric from Integer for both new and existing products
+```{r}
+existingprod$Volume <- as.numeric(existingprod$Volume)
+str(existingprod)
+newprod$Volume <- as.numeric(newprod$Volume)
+str(newprod)
+```
+
+
+# dummify the data
+```{r}
+dummy_matrix <- dummyVars("~ .", data = existingprod)
+str(dummy_matrix)
+existingprod_dum <- data.frame(predict(dummy_matrix, newdata = existingprod))
+```
+
+# correlation matrix to spot relationships
+```{r}
+
+cor_existingprod_dum <- cor(existingprod_dum)
+
+cor_existingprod <- cor(select(existingprod,-ProductType))
+
+corrplot(cor_existingprod_dum, tl.cex = 0.6, method = "pie")
+
+corrplot(cor_existingprod, method = "pie")
+
+```
+
+existingprod$x5StarReviews <- NULL
+existingprod$x1StarReviews <- NULL
+existingprod$x3StarReviews <- NULL
+existingprod$NegativeServiceReview <- NULL
+
+# correlation matrix to spot relationships for new products
+```{r}
+correlationsnew <- cor(newprod[,c(3,4,5,6,7,8,9,10,11,12,13,14,15,16,17)])
+corrplot(correlationsnew, method = "pie") 
+print(correlationsnew)
+```
+
+# Boxplot to identify outliers
+```{r}
+ggplot(existingprod, aes(x = ProductType, y = Volume, 
+                              fill = ProductType)) + 
+  geom_boxplot() + 
+  stat_summary(fun.y = median, color = "white", geom = "text",
+               vjust = -0.7, 
+               aes(label = round(..y.., digits = 1)))
+
+ggplot(existingprod, aes(x=0, y=Volume)) + 
+  geom_boxplot() + 
+  stat_summary(fun.y = median, color = "white", geom = "text",
+               vjust = -0.7, 
+               aes(label = round(..y.., digits = 1)))
+
+```
+
+
+# Removing outliers
+```{r}
+
+summary(!existingprod$Volume > 6000)
+
+existingprod <- existingprod[!(existingprod$Volume > 6000),]
+
+```
+
+# Scatter plots
+```{r}
+ggplot(existingprod, aes(x= x4StarReviews, y= Volume)) +
+  geom_point()
+
+ggplot(existingprod_dum, aes(x = ProductType.PC, y = Volume)) +
+  geom_point()
+
+```
+
+# Histograms to look at the distributions
+```{r}
+ggplot(existingprod, aes(x = x4StarReviews, fill = ProductType)) + 
+  geom_histogram(binwidth = 10, 
+                 color = "white") + 
+  ggtitle("Histogram Existing Products - 4 Star Reviews")
+
+ggplot(newprod, aes(x = x4StarReviews, fill = ProductType)) + 
+  geom_histogram(binwidth = 10, 
+                 color = "white") + 
+  ggtitle("Histogram New Products - 4 Star Reviews")
+
+
+ggplot(existingprod, aes(x = x2StarReviews, fill = ProductType)) + 
+  geom_histogram(binwidth = 10, 
+                 color = "white") + 
+  ggtitle("Histogram Existing Products - 2 Star Reviews")
+
+ggplot(newprod, aes(x = x2StarReviews, fill = ProductType)) + 
+  geom_histogram(binwidth = 10, 
+                 color = "white") + 
+  ggtitle("Histogram New Products - 2 Star Reviews")
+
+
+ggplot(existingprod, aes(x = PositiveServiceReview, fill = ProductType)) + 
+  geom_histogram(binwidth = 10, 
+                 color = "white") + 
+  ggtitle("Histogram Existing Products - Positive Service Reviews")
+
+ggplot(newprod, aes(x = PositiveServiceReview, fill = ProductType)) + 
+  geom_histogram(binwidth = 10, 
+                 color = "white") + 
+  ggtitle("Histogram New Products - Positive Service Reviews")
+
+ggplot(existingprod, aes(x = Volume, fill = ProductType)) + 
+  geom_histogram(binwidth = 100, 
+                 color = "white") + 
+  ggtitle("Histogram Existing Products - Volume")
+
+```
+As we can see, there is a similar distribution among the new and exsinting products, and therefore we can trust our trained existing models to be applied in predicting new product Sales Volume.
+
+# Analysis of variance (ANOVA)
+```{r}
+set.seed(111)
+anova_results <- aov(Volume ~ ProductType, data = existingprod)
+summary(anova_results)
+
+```
+
+
+P - value = .0961 -- This is not significant result. It is not possible to reject the null hypothesis (product type has no influence). Hence, probably product type don't have influence. 
+
+# Define an 75%/25% train/test split
+```{r}
+set.seed(98)
+trainSize <- createDataPartition(y=existingprod$Volume, p = .75, list = F)
+trainSet <- existingprod[trainSize,]
+testSet <- existingprod[-trainSize,]
+```
+
+# SVM selection
+```{r}
+#  Looking at different kernels of SVM
+
+fit <- c()
+prediction <- c()
+performance <- c()
+error_test_compare  <- c()
+error_overfit_compare <- c()
+
+
+models <- c("svmLinear", "svmPoly", "svmRadial")
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
+
+for (j in 21:21){
+  set.seed(j)
+  for (i in models){
+    fit <- train(Volume ~ x4StarReviews + x2StarReviews + 
+                   PositiveServiceReview , 
+                 data = trainSet, 
+                 method = i,
+                 tuneLength = 3,
+                 trControl = ctrl,
+                 preProc = c("center", "scale"))
+    prediction_test <- predict(fit, newdata = testSet)
+    prediction_train <- predict(fit, newdate = trainSet)
+    
+    performance_test <- postResample(prediction_test, testSet$Volume)
+    performance_train <- postResample(prediction_train, trainSet$Volume)
+
+    error_test_compare <- cbind(error_test_compare, performance_test)
+    error_overfit_compare <- cbind(error_overfit_compare, 
+                                   performance_train, 
+                                   performance_test)
+}
+}
+
+colnames(error_overfit_compare) <- c("svmLinear train", "svmLinear test", "svmPoly train", "svmPoly test", "svmRadial train", "svmRadial test")
+colnames(error_test_compare) <- models
+
+summary(existingprod)
+# Mean sales volume (with oultiers) is 705 and median 200
+# Mean sales volume (without outliers) is 489 and median 166
+
+
+error_overfit_compare_melt <- melt(error_overfit_compare)
+print(error_overfit_compare_melt)
+colnames(error_overfit_compare_melt) <- c("metric","method","value")
+ggplot(error_overfit_compare_melt, aes(y = value, x = method)) + 
+  geom_bar(stat = "identity") +
+  facet_grid(metric ~. , scale = "free")
+
+
+```
+
+SVMRadial has the lowest RMSE and best R2. Therefore is the SVM model to be selected. 
+
+
+# for loop to compare different models 
+
+```{r}
+fit <- c()
+prediction <- c()
+performance <- c()
+error_test_compare  <- c()
+error_overfit_compare <- c()
+models <- c("lm", "knn", "svmRadial", "rf")
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
+for (j in 1:3){
+  set.seed(j)
+  trainSize <- createDataPartition(y=existingprod$Volume, 
+                                   p = .75, 
+                                   list = F)
+  trainSet <- existingprod[trainSize,]
+  testSet <- existingprod[-trainSize,]
+  for (i in models){
+    fit <- train(Volume ~ x4StarReviews + x2StarReviews + 
+                   PositiveServiceReview , 
+                 data = trainSet, 
+                 method = i,
+                 tuneLength = 3,
+                 trControl = ctrl,
+                 preProc = c("center", "scale"))
+    prediction_test <- predict(fit, newdata = testSet)
+    prediction_train <- predict(fit, newdate = trainSet)
+    
+    performance_test <- postResample(prediction_test, testSet$Volume)
+    performance_train <- postResample(prediction_train, trainSet$Volume)
+    
+    error_test_compare <- cbind(error_test_compare, performance_test)
+    error_overfit_compare <- cbind(error_overfit_compare, 
+                                   performance_train, 
+                                   performance_test)
+  }
+  
+}
+colnames(error_overfit_compare) <- c("lm train", "lm test", 
+                                     "knn train", "knn test", 
+                                     "svmRadial train", 
+                                     "svmRadial test", "rf train", 
+                                     "rf test", "lm train", "lm test", 
+                                     "knn train", "knn test", 
+                                     "svmRadial train", 
+                                     "svmRadial test", "rf train", 
+                                     "rf test", "lm train", "lm test", 
+                                     "knn train", "knn test", 
+                                     "svmRadial train", 
+                                     "svmRadial test", "rf train", 
+                                     "rf test")
+colnames(error_test_compare) <- c("lm", "knn", "svmRadial", "rf",
+                                  "lm", "knn", "svmRadial", "rf",
+                                  "lm", "knn", "svmRadial", "rf")
+# Plotting
+error_test_compare_melt <- melt(error_test_compare)
+colnames(error_test_compare_melt) <- c("metric", "method", "value")
+error_test_compare_melt$seed[1:12] <- 1
+error_test_compare_melt$seed[13:24] <- 2
+error_test_compare_melt$seed[25:36] <- 3
+# Overfit comparison
+error_overfit_compare_melt <- melt(error_overfit_compare)
+colnames(error_overfit_compare_melt) <- c("metric", "method", "value")
+error_overfit_compare_melt$sample[
+  (error_overfit_compare_melt$method == "lm train"|
+    error_overfit_compare_melt$method == "knn train"|
+    error_overfit_compare_melt$method == "svmRadial train"|
+    error_overfit_compare_melt$method == "rf train")] <- "train"
+error_overfit_compare_melt$sample[
+  (error_overfit_compare_melt$method == "lm test"|
+     error_overfit_compare_melt$method == "knn test"|
+     error_overfit_compare_melt$method == "svmRadial test"|
+     error_overfit_compare_melt$method == "rf test")] <- "test"
+error_overfit_compare_melt$method <- as.character(error_overfit_compare_melt$method)
+error_overfit_compare_melt$method[
+  (error_overfit_compare_melt$method == "lm test" |
+     error_overfit_compare_melt$method == "lm train")] <- "lm"
+error_overfit_compare_melt$method[
+  (error_overfit_compare_melt$method == "knn test" |
+     error_overfit_compare_melt$method == "knn train")] <- "knn"
+error_overfit_compare_melt$method[
+  (error_overfit_compare_melt$method == "svmRadial test" |
+     error_overfit_compare_melt$method == "svmRadial train")] <- "svmRadial"
+error_overfit_compare_melt$method[
+  (error_overfit_compare_melt$method == "rf test" |
+     error_overfit_compare_melt$method == "rf train")] <- "rf"
+error_overfit_compare_melt$seed[1:24] <- 1
+error_overfit_compare_melt$seed[25:48] <- 2
+error_overfit_compare_melt$seed[49:72] <- 3
+ggplot(error_overfit_compare_melt, aes(y = value, x = method, 
+                                       fill = sample)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(metric ~ seed, scale = "free")
+ggplot(error_test_compare_melt, aes(y = value, x = method)) + 
+  geom_bar(stat = "identity") +
+  facet_grid(metric ~ seed, scale = "free")
+# The model selected is Random Forest
+# Tunning Random Forest
+
+
+
+```
+
+Observing the errors of 4 algorithm, we can see how the Random Forest both in testing and training sets return the lowest Errors in 3 different resampling scenario (3 different seeds).
+
+
+# Model choice and prediction
+
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+
+fit <- train(Volume ~ x4StarReviews + x2StarReviews + 
+                   PositiveServiceReview , 
+                 data = existingprod, 
+                 method = "rf",
+                 tuneLength = 10,
+                 trControl = ctrl,
+                 preProc = c("center", "scale"))
+finalpredictedvolume <- predict(fit, newdata = newprod)
+
+newprod$finalpredictedvolume <- finalpredictedvolume
+print(finalpredictedvolume)
+```
+
+```{r}
+
+  ggplot(newprod, aes(y = finalpredictedvolume, x = ProductType)) + 
+  geom_bar(stat = "identity") 
+
+
+```
+
+```{r}
+sum(newprod$finalpredictedvolume[(newprod$ProductType == "PC")])
+
+sum(newprod$finalpredictedvolume[(newprod$ProductType == "Netbook")])
+
+sum(newprod$finalpredictedvolume[(newprod$ProductType == "Laptop")])
+
+sum(newprod$finalpredictedvolume[(newprod$ProductType == "Smartphone")])
+```
+
+Netbook and Smartphone are the Products with the highest predicted selling volumes. However, since there is no relationship between the product type and its volume (as ANOVA test showed us), this high volume selling items can be rather explained because of positive service and customer reviews. 
+
+# Apendix 
+The following is a for loop aiming to check the best model in considering more than 3 variables. It was included for reference.
+```{r}
+#x4StarReviews x2StarReviews PositiveServiceReview #Recommendproduct ShippingWeight Price
+
+fit <- c()
+prediction <- c()
+performance <- c()
+error_test_compare  <- c()
+error_overfit_compare <- c()
+
+models <- c("lm", "knn", "svmRadial", "rf")
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
+
+for (j in 1:1){
+  set.seed(j)
+  for (i in models){
+    fit <- train(Volume ~ x4StarReviews + x2StarReviews + 
+                   PositiveServiceReview + Recommendproduct + ShippingWeight + Price,
+                 data = trainSet, 
+                 method = i,
+                 tuneLength = 3,
+                 trControl = ctrl,
+                 preProc = c("center", "scale"))
+    prediction_test <- predict(fit, newdata = testSet)
+    prediction_train <- predict(fit, newdate = trainSet)
+    
+    performance_test <- postResample(prediction_test, testSet$Volume)
+    performance_train <- postResample(prediction_train, trainSet$Volume)
+    
+    error_test_compare <- cbind(error_test_compare, performance_test)
+    error_overfit_compare <- cbind(error_overfit_compare, 
+                                   performance_train, 
+                                   performance_test)
+  }
+}
+
+colnames(error_overfit_compare) <- c("lm train", "lm test", "knn train", "knn test", "svmRadial train", "svmRadial test", "rf train", "rf test")
+colnames(error_test_compare) <- models
+
+
+# Plotting
+
+compare_melt <- melt(error_overfit_compare)
+```
+
