@@ -9,26 +9,30 @@ date: "October 23, 2019"
 knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
-# Set working directory 
-```{r}
-rm(list = ls()) 
-getwd()         
-
-setwd("/Users/gherardolattanzi/MultipleReg")
-existingprod <- read.csv("Data/existingproductattributes2017.csv")
-newprod <- read.csv("Data/newproductattributes2017.csv")
-```
 
 # Import Libraries
 ```{r}
 
 pacman::p_load(caret, tidyverse, readr, corrplot, caretEnsemble, 
-               data.table, e1071)
+               data.table, e1071, rstudioapi)
 library(ggplot2)
 library(caret)
 library(corrplot)
 library(dummy)
 
+```
+
+# Set working directory and importing data
+
+```{r}
+# rm(list = ls())
+
+# current_path = getActiveDocumentContext()$path
+setwd("~/Ubiqum/Data Analytics Course/Module II/Task3_collab/Profit-/")
+
+# setwd("/Users/gherardolattanzi/MultipleReg")
+existingprod <- read.csv("Data/existingproductattributes2017.csv")
+newprod <- read.csv("Data/newproductattributes2017.csv")
 ```
 
 
@@ -37,7 +41,7 @@ library(dummy)
 any(is.na(newprod)) 
 any(is.na(existingprod)) 
 
-#Lets substitute the missing NA with 
+#Lets substitute the missing NA with the mean
 sum(is.na(existingprod["BestSellersRank"]))   
 sum(is.na(existingprod))   
 
@@ -77,6 +81,8 @@ cor_existingprod <- cor(select(existingprod,-ProductType))
 corrplot(cor_existingprod_dum, tl.cex = 0.6, method = "pie")
 
 corrplot(cor_existingprod, method = "pie")
+
+# chart.Correlation (library(PerformanceAnalytics))
 
 ```
 
@@ -118,6 +124,17 @@ summary(!existingprod$Volume > 6000)
 existingprod <- existingprod[!(existingprod$Volume > 6000),]
 
 ```
+
+# Removing duplicates
+
+```{r}
+existingprod$BestSellersRank <- NULL
+existingprod$ProductNum <- NULL
+existingprod$Price <- NULL
+
+existingprod <- existingprod %>% distinct()
+```
+
 
 # Scatter plots
 ```{r}
@@ -177,10 +194,11 @@ set.seed(111)
 anova_results <- aov(Volume ~ ProductType, data = existingprod)
 summary(anova_results)
 
+# TuckyHSD(anova_results)
 ```
 
 
-P - value = .0961 -- This is not significant result. It is not possible to reject the null hypothesis (product type has no influence). Hence, probably product type don't have influence. 
+P - value = 0.166 -- It is not possible to reject the null hypothesis (product type has no influence). Hence, probably product type doesn't have influence. 
 
 # Define an 75%/25% train/test split
 ```{r}
@@ -396,7 +414,7 @@ Netbook and Smartphone are the Products with the highest predicted selling volum
 # Apendix 
 The following is a for loop aiming to check the best model in considering more than 3 variables. It was included for reference.
 ```{r}
-#x4StarReviews x2StarReviews PositiveServiceReview #Recommendproduct ShippingWeight Price
+#x4StarReviews x2StarReviews PositiveServiceReview #Recommendproduct ShippingWeight
 
 fit <- c()
 prediction <- c()
@@ -411,7 +429,7 @@ for (j in 1:1){
   set.seed(j)
   for (i in models){
     fit <- train(Volume ~ x4StarReviews + x2StarReviews + 
-                   PositiveServiceReview + Recommendproduct + ShippingWeight + Price,
+                   PositiveServiceReview + Recommendproduct + ShippingWeight,
                  data = trainSet, 
                  method = i,
                  tuneLength = 3,

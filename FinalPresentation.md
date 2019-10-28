@@ -3,38 +3,29 @@ Blackwell ProductType Prediction
 Gherardo Lattanzi, Edison Guevara
 October 23, 2019
 
-# Set working directory
-
-``` r
-rm(list = ls()) 
-getwd()         
-```
-
-    ## [1] "/Users/gherardolattanzi/MultipleReg"
-
-``` r
-setwd("/Users/gherardolattanzi/MultipleReg")
-existingprod <- read.csv("Data/existingproductattributes2017.csv")
-newprod <- read.csv("Data/newproductattributes2017.csv")
-```
-
 # Import Libraries
 
 ``` r
 pacman::p_load(caret, tidyverse, readr, corrplot, caretEnsemble, 
-               data.table, e1071)
+               data.table, e1071, rstudioapi)
 library(ggplot2)
 library(caret)
 library(corrplot)
 library(dummy)
 ```
 
-    ## dummy 0.1.3
+# Set working directory and importing data
 
-    ## dummyNews()
+``` r
+# rm(list = ls())
 
-current\_path = getActiveDocumentContext()$path
-setwd(dirname(current\_path))
+# current_path = getActiveDocumentContext()$path
+setwd("~/Ubiqum/Data Analytics Course/Module II/Task3_collab/Profit-/")
+
+# setwd("/Users/gherardolattanzi/MultipleReg")
+existingprod <- read.csv("Data/existingproductattributes2017.csv")
+newprod <- read.csv("Data/newproductattributes2017.csv")
+```
 
 \#Check for Missing Values
 
@@ -51,7 +42,7 @@ any(is.na(existingprod))
     ## [1] TRUE
 
 ``` r
-#Lets substitute the missing NA with 
+#Lets substitute the missing NA with the mean
 sum(is.na(existingprod["BestSellersRank"]))   
 ```
 
@@ -178,10 +169,13 @@ corrplot(cor_existingprod, method = "pie")
 
 ![](FinalPresentation_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
 
+``` r
+# chart.Correlation (library(PerformanceAnalytics))
+```
+
 existingprod\(x5StarReviews <- NULL existingprod\)x1StarReviews \<- NULL
 existingprod\(x3StarReviews <- NULL existingprod\)NegativeServiceReview
-\<-
-NULL
+\<- NULL
 
 # correlation matrix to spot relationships for new products
 
@@ -313,6 +307,16 @@ summary(!existingprod$Volume > 6000)
 existingprod <- existingprod[!(existingprod$Volume > 6000),]
 ```
 
+# Removing duplicates
+
+``` r
+existingprod$BestSellersRank <- NULL
+existingprod$ProductNum <- NULL
+existingprod$Price <- NULL
+
+existingprod <- existingprod %>% distinct()
+```
+
 # Scatter plots
 
 ``` r
@@ -320,14 +324,14 @@ ggplot(existingprod, aes(x= x4StarReviews, y= Volume)) +
   geom_point()
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 ``` r
 ggplot(existingprod_dum, aes(x = ProductType.PC, y = Volume)) +
   geom_point()
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
 
 # Histograms to look at the distributions
 
@@ -338,7 +342,7 @@ ggplot(existingprod, aes(x = x4StarReviews, fill = ProductType)) +
   ggtitle("Histogram Existing Products - 4 Star Reviews")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 ``` r
 ggplot(newprod, aes(x = x4StarReviews, fill = ProductType)) + 
@@ -347,7 +351,7 @@ ggplot(newprod, aes(x = x4StarReviews, fill = ProductType)) +
   ggtitle("Histogram New Products - 4 Star Reviews")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->
 
 ``` r
 ggplot(existingprod, aes(x = x2StarReviews, fill = ProductType)) + 
@@ -356,7 +360,7 @@ ggplot(existingprod, aes(x = x2StarReviews, fill = ProductType)) +
   ggtitle("Histogram Existing Products - 2 Star Reviews")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-12-3.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-13-3.png)<!-- -->
 
 ``` r
 ggplot(newprod, aes(x = x2StarReviews, fill = ProductType)) + 
@@ -365,7 +369,7 @@ ggplot(newprod, aes(x = x2StarReviews, fill = ProductType)) +
   ggtitle("Histogram New Products - 2 Star Reviews")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-12-4.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-13-4.png)<!-- -->
 
 ``` r
 ggplot(existingprod, aes(x = PositiveServiceReview, fill = ProductType)) + 
@@ -374,7 +378,7 @@ ggplot(existingprod, aes(x = PositiveServiceReview, fill = ProductType)) +
   ggtitle("Histogram Existing Products - Positive Service Reviews")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-12-5.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-13-5.png)<!-- -->
 
 ``` r
 ggplot(newprod, aes(x = PositiveServiceReview, fill = ProductType)) + 
@@ -383,7 +387,7 @@ ggplot(newprod, aes(x = PositiveServiceReview, fill = ProductType)) +
   ggtitle("Histogram New Products - Positive Service Reviews")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-12-6.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-13-6.png)<!-- -->
 
 ``` r
 ggplot(existingprod, aes(x = Volume, fill = ProductType)) + 
@@ -392,7 +396,7 @@ ggplot(existingprod, aes(x = Volume, fill = ProductType)) +
   ggtitle("Histogram Existing Products - Volume")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-12-7.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-13-7.png)<!-- -->
 As we can see, there is a similar distribution among the new and
 exsinting products, and therefore we can trust our trained existing
 models to be applied in predicting new product Sales Volume.
@@ -405,15 +409,17 @@ anova_results <- aov(Volume ~ ProductType, data = existingprod)
 summary(anova_results)
 ```
 
-    ##             Df   Sum Sq Mean Sq F value Pr(>F)  
-    ## ProductType 11  7924587  720417   2.392 0.0146 *
-    ## Residuals   66 19881311  301232                 
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ##             Df   Sum Sq Mean Sq F value Pr(>F)
+    ## ProductType 11  5075621  461420   1.473  0.166
+    ## Residuals   59 18487579  313349
 
-P - value = .0961 – This is not significant result. It is not possible
-to reject the null hypothesis (product type has no influence). Hence,
-probably product type don’t have influence.
+``` r
+# TuckyHSD(anova_results)
+```
+
+P - value = 0.166 – It is not possible to reject the null hypothesis
+(product type has no influence). Hence, probably product type doesn’t
+have influence.
 
 # Define an 75%/25% train/test split
 
@@ -468,45 +474,37 @@ colnames(error_test_compare) <- models
 summary(existingprod)
 ```
 
-    ##            ProductType   ProductNum        Price         x5StarReviews  
-    ##  Accessories     :25   Min.   :101.0   Min.   :   3.60   Min.   :  0.0  
-    ##  Printer         :12   1st Qu.:120.2   1st Qu.:  53.79   1st Qu.: 10.0  
-    ##  ExtendedWarranty:10   Median :139.5   Median : 134.03   Median : 41.5  
-    ##  Software        : 6   Mean   :141.7   Mean   : 251.30   Mean   :122.3  
-    ##  Display         : 5   3rd Qu.:159.8   3rd Qu.: 357.49   3rd Qu.:221.8  
-    ##  PC              : 4   Max.   :200.0   Max.   :2249.99   Max.   :535.0  
-    ##  (Other)         :16                                                    
-    ##  x4StarReviews    x3StarReviews    x2StarReviews    x1StarReviews    
-    ##  Min.   :  0.00   Min.   :  0.00   Min.   :  0.00   Min.   :   0.00  
-    ##  1st Qu.:  2.25   1st Qu.:  2.00   1st Qu.:  1.00   1st Qu.:   2.00  
-    ##  Median : 19.00   Median :  6.50   Median :  3.00   Median :   8.00  
-    ##  Mean   : 31.91   Mean   : 11.76   Mean   : 11.45   Mean   :  34.62  
-    ##  3rd Qu.: 32.50   3rd Qu.: 10.00   3rd Qu.:  7.00   3rd Qu.:  15.00  
-    ##  Max.   :261.00   Max.   :162.00   Max.   :370.00   Max.   :1654.00  
-    ##                                                                      
-    ##  PositiveServiceReview NegativeServiceReview Recommendproduct
-    ##  Min.   :  0.00        Min.   :  0.000       Min.   :0.1000  
-    ##  1st Qu.:  2.00        1st Qu.:  1.000       1st Qu.:0.7000  
-    ##  Median :  5.00        Median :  2.500       Median :0.8000  
-    ##  Mean   : 45.49        Mean   :  5.936       Mean   :0.7423  
-    ##  3rd Qu.: 27.25        3rd Qu.:  5.750       3rd Qu.:0.9000  
-    ##  Max.   :310.00        Max.   :112.000       Max.   :1.0000  
-    ##                                                              
-    ##  BestSellersRank    ShippingWeight    ProductDepth      ProductWidth   
-    ##  Min.   :    1.00   Min.   : 0.010   Min.   :  0.000   Min.   : 0.000  
-    ##  1st Qu.:    8.25   1st Qu.: 0.550   1st Qu.:  4.725   1st Qu.: 1.650  
-    ##  Median :   72.50   Median : 2.100   Median :  7.950   Median : 6.950  
-    ##  Mean   : 1152.05   Mean   : 9.818   Mean   : 14.596   Mean   : 7.885  
-    ##  3rd Qu.: 1126.31   3rd Qu.:11.735   3rd Qu.: 15.075   3rd Qu.:11.425  
-    ##  Max.   :17502.00   Max.   :63.000   Max.   :300.000   Max.   :31.750  
-    ##                                                                        
-    ##  ProductHeight        Volume      
-    ##  Min.   : 0.000   Min.   :   0.0  
-    ##  1st Qu.: 0.400   1st Qu.:  40.0  
-    ##  Median : 4.700   Median : 166.0  
-    ##  Mean   : 6.381   Mean   : 489.2  
-    ##  3rd Qu.:10.500   3rd Qu.: 887.0  
-    ##  Max.   :25.800   Max.   :2140.0  
+    ##       ProductType x5StarReviews x4StarReviews    x3StarReviews   
+    ##  Accessories:25   Min.   :  0   Min.   :  0.00   Min.   :  0.00  
+    ##  Printer    :12   1st Qu.:  8   1st Qu.:  2.00   1st Qu.:  2.00  
+    ##  Software   : 6   Median : 26   Median : 15.00   Median :  6.00  
+    ##  Display    : 5   Mean   :104   Mean   : 32.39   Mean   : 12.13  
+    ##  PC         : 4   3rd Qu.:128   3rd Qu.: 33.00   3rd Qu.: 11.50  
+    ##  Smartphone : 4   Max.   :535   Max.   :261.00   Max.   :162.00  
+    ##  (Other)    :15                                                  
+    ##  x2StarReviews    x1StarReviews     PositiveServiceReview
+    ##  Min.   :  0.00   Min.   :   0.00   Min.   :  0.00       
+    ##  1st Qu.:  0.50   1st Qu.:   2.00   1st Qu.:  1.50       
+    ##  Median :  3.00   Median :   6.00   Median :  5.00       
+    ##  Mean   : 12.28   Mean   :  36.55   Mean   : 22.37       
+    ##  3rd Qu.:  7.00   3rd Qu.:  15.50   3rd Qu.: 12.00       
+    ##  Max.   :370.00   Max.   :1654.00   Max.   :310.00       
+    ##                                                          
+    ##  NegativeServiceReview Recommendproduct ShippingWeight   ProductDepth   
+    ##  Min.   :  0.000       Min.   :0.1000   Min.   : 0.01   Min.   :  0.00  
+    ##  1st Qu.:  1.000       1st Qu.:0.7000   1st Qu.: 0.90   1st Qu.:  5.85  
+    ##  Median :  2.000       Median :0.8000   Median : 2.40   Median :  9.20  
+    ##  Mean   :  5.732       Mean   :0.7268   Mean   :10.77   Mean   : 16.04  
+    ##  3rd Qu.:  4.000       3rd Qu.:0.9000   3rd Qu.:13.35   3rd Qu.: 15.55  
+    ##  Max.   :112.000       Max.   :1.0000   Max.   :63.00   Max.   :300.00  
+    ##                                                                         
+    ##   ProductWidth    ProductHeight       Volume    
+    ##  Min.   : 0.000   Min.   : 0.00   Min.   :   0  
+    ##  1st Qu.: 3.000   1st Qu.: 0.55   1st Qu.:  32  
+    ##  Median : 8.200   Median : 5.70   Median : 104  
+    ##  Mean   : 8.662   Mean   : 7.01   Mean   : 416  
+    ##  3rd Qu.:12.400   3rd Qu.:11.95   3rd Qu.: 512  
+    ##  Max.   :31.750   Max.   :25.80   Max.   :2140  
     ## 
 
 ``` r
@@ -530,24 +528,24 @@ print(error_overfit_compare_melt)
 ```
 
     ##        Var1            Var2       value
-    ## 1      RMSE svmLinear train 356.6585662
-    ## 2  Rsquared svmLinear train   0.6863776
-    ## 3       MAE svmLinear train 165.5781480
-    ## 4      RMSE  svmLinear test 157.4665276
-    ## 5  Rsquared  svmLinear test   0.9103027
-    ## 6       MAE  svmLinear test  88.6066183
-    ## 7      RMSE   svmPoly train 359.8106735
-    ## 8  Rsquared   svmPoly train   0.6806089
-    ## 9       MAE   svmPoly train 174.9388199
-    ## 10     RMSE    svmPoly test 160.9684129
-    ## 11 Rsquared    svmPoly test   0.9038879
-    ## 12      MAE    svmPoly test  95.8305397
-    ## 13     RMSE svmRadial train 149.3352066
-    ## 14 Rsquared svmRadial train   0.9688030
-    ## 15      MAE svmRadial train  82.7972511
-    ## 16     RMSE  svmRadial test 140.8555728
-    ## 17 Rsquared  svmRadial test   0.9393448
-    ## 18      MAE  svmRadial test 104.5836330
+    ## 1      RMSE svmLinear train 328.7921349
+    ## 2  Rsquared svmLinear train   0.7375770
+    ## 3       MAE svmLinear train 155.5945472
+    ## 4      RMSE  svmLinear test 374.1165346
+    ## 5  Rsquared  svmLinear test   0.4341059
+    ## 6       MAE  svmLinear test 160.1756646
+    ## 7      RMSE   svmPoly train 354.5137235
+    ## 8  Rsquared   svmPoly train   0.7139004
+    ## 9       MAE   svmPoly train 183.0928394
+    ## 10     RMSE    svmPoly test 360.7257119
+    ## 11 Rsquared    svmPoly test   0.3977957
+    ## 12      MAE    svmPoly test 179.1994249
+    ## 13     RMSE svmRadial train 120.5220593
+    ## 14 Rsquared svmRadial train   0.9773563
+    ## 15      MAE svmRadial train  71.6764863
+    ## 16     RMSE  svmRadial test 183.8088276
+    ## 17 Rsquared  svmRadial test   0.7938534
+    ## 18      MAE  svmRadial test 125.1728876
 
 ``` r
 colnames(error_overfit_compare_melt) <- c("metric","method","value")
@@ -556,7 +554,7 @@ ggplot(error_overfit_compare_melt, aes(y = value, x = method)) +
   facet_grid(metric ~. , scale = "free")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 SVMRadial has the lowest RMSE and best R2. Therefore is the SVM model to
 be selected.
@@ -687,7 +685,7 @@ ggplot(error_overfit_compare_melt, aes(y = value, x = method,
   facet_grid(metric ~ seed, scale = "free")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 ``` r
 ggplot(error_test_compare_melt, aes(y = value, x = method)) + 
@@ -695,7 +693,7 @@ ggplot(error_test_compare_melt, aes(y = value, x = method)) +
   facet_grid(metric ~ seed, scale = "free")
 ```
 
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
 
 ``` r
 # The model selected is Random Forest
@@ -706,10 +704,83 @@ Observing the errors of 4 algorithm, we can see how the Random Forest
 both in testing and training sets return the lowest Errors in 3
 different resampling scenario (3 different seeds).
 
-\#x4StarReviews x2StarReviews PositiveServiceReview \#Recommendproduct
-ShippingWeight Price
+# Model choice and prediction
 
 ``` r
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+
+fit <- train(Volume ~ x4StarReviews + x2StarReviews + 
+                   PositiveServiceReview , 
+                 data = existingprod, 
+                 method = "rf",
+                 tuneLength = 10,
+                 trControl = ctrl,
+                 preProc = c("center", "scale"))
+```
+
+    ## note: only 2 unique complexity parameters in default grid. Truncating the grid to 2 .
+
+``` r
+finalpredictedvolume <- predict(fit, newdata = newprod)
+
+newprod$finalpredictedvolume <- finalpredictedvolume
+print(finalpredictedvolume)
+```
+
+    ##           1           2           3           4           5           6 
+    ##  489.458533  128.507333  150.440933   42.987600   12.994667   60.151600 
+    ##           7           8           9          10          11          12 
+    ## 1220.763467  141.366000   25.875867 1251.018400 1923.577067  440.980933 
+    ##          13          14          15          16          17          18 
+    ##  653.543733   87.044267  162.056000 1293.126667   18.358193   32.012733 
+    ##          19          20          21          22          23          24 
+    ##   65.770400  128.878400   81.974533   18.358193    4.183867 1617.176000
+
+``` r
+  ggplot(newprod, aes(y = finalpredictedvolume, x = ProductType)) + 
+  geom_bar(stat = "identity") 
+```
+
+![](FinalPresentation_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+
+``` r
+sum(newprod$finalpredictedvolume[(newprod$ProductType == "PC")])
+```
+
+    ## [1] 617.9659
+
+``` r
+sum(newprod$finalpredictedvolume[(newprod$ProductType == "Netbook")])
+```
+
+    ## [1] 1448.157
+
+``` r
+sum(newprod$finalpredictedvolume[(newprod$ProductType == "Laptop")])
+```
+
+    ## [1] 206.4232
+
+``` r
+sum(newprod$finalpredictedvolume[(newprod$ProductType == "Smartphone")])
+```
+
+    ## [1] 1343.625
+
+Netbook and Smartphone are the Products with the highest predicted
+selling volumes. However, since there is no relationship between the
+product type and its volume (as ANOVA test showed us), this high volume
+selling items can be rather explained because of positive service and
+customer reviews.
+
+# Apendix
+
+The following is a for loop aiming to check the best model in
+considering more than 3 variables. It was included for reference.
+
+``` r
+#x4StarReviews x2StarReviews PositiveServiceReview #Recommendproduct ShippingWeight
+
 fit <- c()
 prediction <- c()
 performance <- c()
@@ -723,7 +794,7 @@ for (j in 1:1){
   set.seed(j)
   for (i in models){
     fit <- train(Volume ~ x4StarReviews + x2StarReviews + 
-                   PositiveServiceReview + Recommendproduct + ShippingWeight + Price,
+                   PositiveServiceReview + Recommendproduct + ShippingWeight,
                  data = trainSet, 
                  method = i,
                  tuneLength = 3,
@@ -758,110 +829,3 @@ compare_melt <- melt(error_overfit_compare)
     ## both libraries are attached, e.g. melt.list, you can prepend the namespace
     ## like reshape2::melt(error_overfit_compare). In the next version, this
     ## warning will become an error.
-
-``` r
-compare_melt
-```
-
-    ##        Var1            Var2       value
-    ## 1      RMSE        lm train 329.7509604
-    ## 2  Rsquared        lm train   0.6638603
-    ## 3       MAE        lm train 213.1356637
-    ## 4      RMSE         lm test 503.4943681
-    ## 5  Rsquared         lm test   0.8635205
-    ## 6       MAE         lm test 277.3576463
-    ## 7      RMSE       knn train 290.1659863
-    ## 8  Rsquared       knn train   0.7477600
-    ## 9       MAE       knn train 171.9851852
-    ## 10     RMSE        knn test 373.3198410
-    ## 11 Rsquared        knn test   0.7431043
-    ## 12      MAE        knn test 217.6296296
-    ## 13     RMSE svmRadial train 204.2766284
-    ## 14 Rsquared svmRadial train   0.9040292
-    ## 15      MAE svmRadial train 101.3334820
-    ## 16     RMSE  svmRadial test 542.2844228
-    ## 17 Rsquared  svmRadial test   0.4220800
-    ## 18      MAE  svmRadial test 267.1384730
-    ## 19     RMSE        rf train  82.4107493
-    ## 20 Rsquared        rf train   0.9793695
-    ## 21      MAE        rf train  40.9383733
-    ## 22     RMSE         rf test 343.2787522
-    ## 23 Rsquared         rf test   0.8551628
-    ## 24      MAE         rf test 162.5374074
-
-``` r
-ggplot(compare_melt, aes(y = value, x = Var2)) + 
-  geom_bar(stat = "identity") +
-  facet_grid(Var1 ~ . , scale = "free")
-```
-
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
-
-# Model choice and prediction
-
-``` r
-ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
-
-fit <- train(Volume ~ x4StarReviews + x2StarReviews + 
-                   PositiveServiceReview , 
-                 data = existingprod, 
-                 method = "rf",
-                 tuneLength = 10,
-                 trControl = ctrl,
-                 preProc = c("center", "scale"))
-```
-
-    ## note: only 2 unique complexity parameters in default grid. Truncating the grid to 2 .
-
-``` r
-finalpredictedvolume <- predict(fit, newdata = newprod)
-
-newprod$finalpredictedvolume <- finalpredictedvolume
-print(finalpredictedvolume)
-```
-
-    ##           1           2           3           4           5           6 
-    ##  494.556000  124.636800  150.840133   36.944667   24.622267   56.380800 
-    ##           7           8           9          10          11          12 
-    ## 1248.964533  122.626400   24.584400 1275.266800 1903.802133  443.742533 
-    ##          13          14          15          16          17          18 
-    ##  653.869733   86.656267  161.508133 1354.687200   18.541622   28.805933 
-    ##          19          20          21          22          23          24 
-    ##   64.262800  115.217067   81.591733   18.541622    4.157867 1604.865333
-
-``` r
-  ggplot(newprod, aes(y = finalpredictedvolume, x = ProductType)) + 
-  geom_bar(stat = "identity") 
-```
-
-![](FinalPresentation_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
-
-``` r
-sum(newprod$finalpredictedvolume[(newprod$ProductType == "PC")])
-```
-
-    ## [1] 619.1928
-
-``` r
-sum(newprod$finalpredictedvolume[(newprod$ProductType == "Netbook")])
-```
-
-    ## [1] 1452.556
-
-``` r
-sum(newprod$finalpredictedvolume[(newprod$ProductType == "Laptop")])
-```
-
-    ## [1] 212.4071
-
-``` r
-sum(newprod$finalpredictedvolume[(newprod$ProductType == "Smartphone")])
-```
-
-    ## [1] 1345.777
-
-Netbook and Smartphone are the Products with the highest predicted
-selling volumes. However, since there is no relationship between the
-product type and its volume (as ANOVA test showed us), this high volume
-selling items can be rather explained because of positive service and
-customer reviews.
